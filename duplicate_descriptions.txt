@@ -1,0 +1,12 @@
+With locationsC as (Select 
+                         landmark_desc 
+                    from 
+                          `map-project-refactor.prod.locations_created` 
+                     where 
+                          CAST(DATE(created_at) AS DATE) between '2020-10-01' and '2020-10-20' )
+
+select count(*),landmark_desc FROM locationsC
+where landmark_desc is not null and landmark_desc<>''
+group by landmark_desc
+having count(*) > 1
+
