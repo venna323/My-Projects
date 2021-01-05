@@ -1,0 +1,62 @@
+/*Measure where users spend their time in Screens*/
+ 
+SELECT distinct user_pseudo_id,screen,round((avg(engagement_time)/1000)/2,2) AS UserTimespent--, Round(sum(engagement_time)/1000,2) as SumUserTimespent(optional)
+FROM (
+  SELECT user_pseudo_id, event_name,event_Date,
+    (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 
+      "engagement_time_msec" ) AS engagement_time,
+      (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 
+      "firebase_screen" ) AS screen
+  FROM `map-project-refactor.analytics.events_*` 
+  WHERE event_name = "user_engagement" AND  event_date between '20201101' and '20201130'
+)
+WHERE engagement_time > 0 and screen is not null
+GROUP BY 1,2
+--order by user_pseudo_id
+
+
+/*--------------Test Cases-------------------*/
+-----Overall Average for perticular screen_name (cross check in Firebase )
+/* SELECT screen,round((avg(engagement_time)/1000)/2) as AVG
+FROM (
+  SELECT event_name,event_Date,event_timestamp,
+    (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 
+      "engagement_time_msec" ) AS engagement_time,
+      (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 
+      "firebase_screen" ) AS screen
+  FROM `map-project-refactor.analytics.events_*` 
+  WHERE event_name = "user_engagement" AND event_date between '20201101' and '20201130'
+)
+WHERE engagement_time > 0  and screen="Notifications"
+GROUP BY 1*/
+
+
+-------User Test case with single user id------
+/*SELECT distinct user_pseudo_id,screen,event_Date,engagement_time 
+FROM (
+  SELECT user_pseudo_id, event_name,event_Date,event_timestamp,
+    (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 
+      "engagement_time_msec" ) AS engagement_time,
+      (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 
+      "firebase_screen" ) AS screen
+  FROM `map-project-refactor.analytics.events_*` 
+  WHERE event_name = "user_engagement" AND event_date between '20201101' and '20201130'
+)
+WHERE engagement_time > 0 and user_pseudo_id='0ea314f6afb2cab4919ba16fcdbf9384' and screen="CreatePersonalInformation"*/
+
+----testcase for overall user avg
+/*SELECT distinct user_pseudo_id,screen,substring(event_Date,1,6),round(avg(engagement_time)/1000)
+FROM (
+  SELECT user_pseudo_id, event_name,event_Date,event_timestamp,
+    (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 
+      "engagement_time_msec" ) AS engagement_time,
+      (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 
+      "firebase_screen" ) AS screen
+  FROM `map-project-refactor.analytics.events_*` 
+  WHERE event_name = "user_engagement" AND event_date between '20201101' and '20201130'
+)
+WHERE engagement_time > 0 and user_pseudo_id='0ea314f6afb2cab4919ba16fcdbf9384' and screen="CreatePersonalInformation"
+GROUP BY 1,2,3*/
+
+
+
