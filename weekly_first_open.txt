@@ -1,0 +1,144 @@
+### Cohorts based on weeks(First Sign Up)
+<details>
+<summary>
+Total number of Weekly Profiles created and Deleted 
+</summary>
+<i>
+
+[Create a table for cohorts based on weeks(First Sign Up)#28](https://datastudio.google.com/reporting/f21c37d4-3ab9-4720-9eac-6999c4dadabc/page/84lpB)</i>
+Code: 
+<pre>
+SELECT Weeknumber,Month_Year,Profiles_Created,Profiles_Deleted,ROW_NUMBER() OVER() as id FROM
+(with PC as(select
+                                             count(uid) as Profiles_Created,
+                                             CONCAT('WEEK ',EXTRACT(WEEK FROM CAST(DATE(created_at) AS DATE) )) AS WEEKNUMBER,
+                                             CONCAT(format_date('%B ', CAST(DATE(created_at) AS DATE) ),EXTRACT(YEAR FROM CAST(DATE(created_at) AS DATE) ) )as Month_Year
+                                        from
+                                            `map-project-refactor.prod.users_created`
+                                             group by WEEKNUMBER,Month_Year),                            
+                            PD as(select 
+                                               count(uid) as Profiles_Deleted,
+                                               CONCAT('WEEK ',EXTRACT(WEEK FROM CAST(DATE(deleted_at) AS DATE) )) AS WEEKNUMBER,
+                                               CONCAT(format_date('%B ', CAST(DATE(deleted_at) AS DATE) ),EXTRACT(YEAR FROM CAST(DATE(deleted_at) AS DATE) ) )as Month_Year
+                                          from 
+                                               `map-project-refactor.prod.users_deleted` 
+                                                group by WEEKNUMBER,Month_Year)                           
+select PC.WEEKNUMBER as Weeknumber,PC.Month_Year as Month_Year, PC.Profiles_Created,PD.Profiles_Deleted from PC,PD
+where  PC.WEEKNUMBER=PD.WEEKNUMBER 
+and PC.Month_Year=PD.Month_Year 
+ORDER BY WEEKNUMBER  desc)
+ORDER BY id
+
+</pre>
+
+</details>  
+
+<details>
+<summary>
+Number of still active 1,7,30 Days ago(next 1, 7, 30 days) 
+</summary>
+  
+Code: 
+<pre>
+/*1_View query for next 1day*/
+with First_Open as (select distinct user_pseudo_id as user_pseudo_id_fo,
+                           PARSE_DATE("%Y%m%d",event_date) as event_date_fo
+     from `map-project-refactor.analytics_174510887.events_*` a 
+     WHERE event_name ='first_open'),
+     
+    Active as (select distinct user_pseudo_id as user_pseudo_id_Akt,DATE_ADD(PARSE_DATE("%Y%m%d",event_date), INTERVAL -1 DAY)event_date_Akt from  `map-project-refactor.analytics_174510887.events_*` a
+      WHERE event_name ='user_engagement' and event_date > (select min(event_date)  from `map-project-refactor.analytics_174510887.events_*`)
+                              ) 
+select event_date_fo, count(distinct user_pseudo_id_fo) first_open,count(distinct case when event_date_fo=event_date_Akt and user_pseudo_id_fo=user_pseudo_id_Akt then user_pseudo_id_Akt end) Active
+from First_Open
+left join Active on user_pseudo_id_fo=user_pseudo_id_Akt
+group by 1
+order by 1 desc
+
+/*2_View: query for next 7days*/
+select week_Number, Year, first_open, Active ,ROW_NUMBER() OVER() as id1 from(
+with First_Open as (select distinct user_pseudo_id as user_pseudo_id_fo,
+                           CONCAT('WEEK ',EXTRACT(WEEK FROM PARSE_DATE("%Y%m%d",event_date))) AS week_Number,
+EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",event_date)) as Year
+     from `map-project-refactor.analytics_174510887.events_*` a 
+     WHERE event_name ='first_open'),
+     
+    Active as (select distinct user_pseudo_id as user_pseudo_id_Akt,
+    CONCAT('WEEK ',((EXTRACT(WEEK FROM PARSE_DATE("%Y%m%d",event_date)))-1)) AS week_Number_Akt,
+  EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",event_date)) as Year_Akt
+    from  `map-project-refactor.analytics_174510887.events_*` a
+      WHERE event_name ='user_engagement' and event_date >= '20190609'
+                              ) 
+select week_Number,Year, count(distinct user_pseudo_id_fo) first_open,count(distinct case when week_Number=week_Number_Akt and
+Year=Year_Akt and user_pseudo_id_fo=user_pseudo_id_Akt then user_pseudo_id_Akt end) Active
+from First_Open
+left join Active on user_pseudo_id_fo=user_pseudo_id_Akt
+group by 1,2
+order by Year,cast (SUBSTR(week_Number, 5, LENGTH(week_Number)) AS int64)) 
+order by id1
+
+/* 3_View: query for next 30days*/
+select rank() over(order by Year,cast (SUBSTR(week_Number, 5, LENGTH(week_Number)) AS int64)) ID  ,
+week_Number,Year,First_Open,Active_count 
+from (with first_open as(select distinct user_pseudo_id as user_pseudo_id_fo,
+                           CONCAT('WEEK ',EXTRACT(WEEK FROM PARSE_DATE("%Y%m%d",event_date))) AS week_Number,
+                              EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",event_date)) as Year
+     from `map-project-refactor.analytics_174510887.events_*` a 
+     WHERE event_name ='first_open'),
+
+ Active as(select distinct id,week_Number,Year,user_pseudo_id from 
+                       (with daten as (select row_number() over() id,
+                       Date1,Date30,
+                       week_Number,
+                       Year from 
+                       (select  CONCAT('WEEK ',EXTRACT(WEEK FROM PARSE_DATE("%Y%m%d",event_date))) week_Number,
+                         EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",event_date)) Year,
+                                        max(DATE_ADD(PARSE_DATE("%Y%m%d",event_date), INTERVAL +1 DAY)) Date1,
+                                        max(DATE_ADD(PARSE_DATE("%Y%m%d",event_date), INTERVAL +31 DAY)) Date30
+ from  `map-project-refactor.analytics_174510887.events_*` a
+      WHERE event_name ='user_engagement' 
+      group by 1,2
+      order by Year,cast (SUBSTR(week_Number, 5, LENGTH(week_Number)) AS int64)))
+      
+      select distinct id,week_Number,Year,
+      case when PARSE_DATE("%Y%m%d",event_date)>=Date1 and PARSE_DATE("%Y%m%d",event_date)<=Date30
+      then user_pseudo_id end user_pseudo_id
+      from  `map-project-refactor.analytics_174510887.events_*` a,daten
+      WHERE event_name ='user_engagement' ) where user_pseudo_id is not null)
+      
+      select first_open.week_Number,first_open.Year, count(distinct user_pseudo_id_fo) First_Open,
+      count(distinct case when first_open.week_Number=Active.week_Number and first_open.Year=Active.Year and user_pseudo_id_fo=user_pseudo_id then user_pseudo_id end)Active_count
+      from first_open
+      left join Active on user_pseudo_id_fo=user_pseudo_id
+      group by 1,2)
+      order by Year,cast (SUBSTR(week_Number, 5, LENGTH(week_Number)) AS int64) 
+      
+/*4th query for weekly first signup for next 1 day,7days and 30days*/
+with a7day as (select week_Number,Year,first_open,Active,id1 from
+`map-project-refactor.analytics_174510887.task28_dashboard_active7days` ),
+
+a1day as (select week_Number,Year,atv,ROW_NUMBER() OVER() as id from(select CONCAT('WEEK ',EXTRACT(WEEK FROM event_date_fo)) AS week_Number,
+EXTRACT(YEAR FROM event_date_fo) as Year,sum(Active) as atv,
+     from `map-project-refactor.analytics_174510887.T28_Day`
+     group by 1,2
+     order by Year,cast (SUBSTR(week_Number, 5, LENGTH(week_Number)) AS int64))),
+a30day as(select ID as id2,Active_count from  `map-project-refactor.analytics_174510887.Task28_Weekly_30DaysActiveUsers`)     
+     
+     select id,a7day.week_Number as Week,a7day.Year as Year,a7day.first_open as First_Open,a1day.atv as Day_1active, a7day.Active as Days_7Active,
+  case when current_date() >= Date30 then Active_count else 0  end as Days_30Active from a7day
+     join a1day on id=id1
+     join a30day on id=id2
+     join (select row_number() over() id3,
+                       Date30 from 
+                       (select  CONCAT('WEEK ',EXTRACT(WEEK FROM PARSE_DATE("%Y%m%d",event_date))) week_Number,
+                         EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",event_date)) Year,
+          max(DATE_ADD(PARSE_DATE("%Y%m%d",event_date), INTERVAL +31 DAY)) Date30
+ from  `map-project-refactor.analytics_174510887.events_*` a
+      group by 1,2
+      order by Year,cast (SUBSTR(week_Number, 5, LENGTH(week_Number)) AS int64))) tmp on id=id3
+
+</pre>
+
+</details> 
+
+  
