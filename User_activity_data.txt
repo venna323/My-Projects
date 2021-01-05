@@ -1,0 +1,16 @@
+
+/*Weekly Users Activities*/ 
+
+with Users as( Select  CONCAT(' WEEK ',EXTRACT(WEEK FROM PARSE_DATE("%Y%m%d",event_date))) AS Week_Number,
+
+       CONCAT(format_date('%B ',PARSE_DATE("%Y%m%d",event_date)),EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",event_date))) as Month_Year,
+       event_name,PARSE_DATE("%Y%m%d",event_date) as Date,
+        RANK() over(order by PARSE_DATE("%Y%m%d",event_date),EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",event_date))) as id
+                       FROM 
+                             `map-project-refactor.analytics_174510887.events_*` )
+                      
+                       Select Week_Number,Month_Year,event_name, Date,count(*) AS Users ,id FROM users
+                       where Week_Number is not null
+                       Group By Week_Number,Month_Year,event_name,Date,id
+                       ORDER BY  id          
+ 
