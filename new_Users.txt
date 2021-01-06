@@ -1,0 +1,10 @@
+/* To find new users */
+
+SELECT
+  DISTINCT user_pseudo_id
+FROM
+  `map-project-refactor.analytics_174510887.events*`
+WHERE
+  event_name='first_open'
+  AND event_date>='20201001'
+  AND event_date<='20201031'
