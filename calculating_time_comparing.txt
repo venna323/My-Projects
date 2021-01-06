@@ -1,0 +1,30 @@
+/*calculating time spent of user in app and comparing with last period*/
+
+ 
+with cMnov as(SELECT user_pseudo_id, SUM(engagement_time)/1000 AS total_user_engagement 
+FROM (
+  SELECT user_pseudo_id, 
+    (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 
+      "engagement_time_msec") AS engagement_time
+  FROM `map-project-refactor.analytics.events_*` 
+  where event_date between '20201101' and '20201130'
+)
+WHERE engagement_time > 0  
+GROUP BY user_pseudo_id),
+
+ cMoct as(SELECT user_pseudo_id, SUM(engagement_time)/1000 AS total_user_engagement 
+FROM (
+  SELECT user_pseudo_id, 
+    (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 
+      "engagement_time_msec") AS engagement_time
+  FROM `map-project-refactor.analytics.events_*` 
+  where event_date between '20201001' and '20201031'
+)
+WHERE engagement_time > 0  
+GROUP BY user_pseudo_id)
+
+select cMnov.user_pseudo_id as Users,cMnov.total_user_engagement as TimeSpent_Nov,cMoct.total_user_engagement as TimeSpent_Oct,concat(Round(((cMnov.total_user_engagement-cMoct.total_user_engagement)/cMoct.total_user_engagement)*100,2),' %') as TimeSpentComparison
+from cMnov
+join cMoct on cMnov.user_pseudo_id=cMoct.user_pseudo_id
+
+
