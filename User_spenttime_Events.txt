@@ -1,0 +1,20 @@
+/*Measure users spending time in Events*/
+
+------Mesaure_User_Time_Spent_In-Events:Createdby-Venna:Created on-17/12/2020:Version-0.1
+Select distinct user_pseudo_id,event_name,AVGUserTimeSec,round(AVGUserTimeSec/3600,2) as AvgUserTimeHrs from
+(select distinct user_pseudo_id,event_name,(ROUND((MAX(max_time)-MIN(min_time))/(1000*1000),2)) AVGUserTimeSec 
+from(SELECT 
+          user_pseudo_id,event_name , MIN(event_timestamp) AS min_time, MAX(event_timestamp) AS max_time
+          FROM  `map-project-refactor.analytics.events_*` 
+          where event_date between '20201101' and '20201130' GROUP BY user_pseudo_id,event_name)
+          group by 1,2)
+ 
+ 
+-- TestCase
+/*SELECT *
+          FROM  `map-project-refactor.analytics.events_*` 
+          where user_pseudo_id='1c7193a9d157aba473c93c808255306e' and event_name='open_map_own_button' and  event_date between '20201101' and '20201130' */
+
+
+
+
