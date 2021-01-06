@@ -1,0 +1,28 @@
+/*Resurrected users in a period of month (hardcoded values)*/
+SELECT distinct user_pseudo_id
+                              FROM 
+                                  `map-project-refactor.analytics_174510887.events_*` 
+                              where event_name ='user_engagement' and event_date between '20200801' and '20200831' and  user_pseudo_id in(SELECT distinct user_pseudo_id
+                              FROM 
+                                  `map-project-refactor.analytics_174510887.events_*` 
+                              where event_name ='first_open' and event_date between '20200801' and '20200831') 
+                                
+                              
+and user_pseudo_id in( SELECT 
+ user_pseudo_id
+FROM 
+     `map-project-refactor.analytics_174510887.events_*` temp1
+WHERE  event_name<>'user_engagement'
+        and event_date between '20200901' and '20200930' and not exists( SELECT 
+ user_pseudo_id
+FROM 
+     `map-project-refactor.analytics_174510887.events_*` temp2
+WHERE  temp1.user_pseudo_id=temp2.user_pseudo_id and  event_name='user_engagement'
+        and event_date between '20200901' and '20200930')     
+ 
+and user_pseudo_id in(SELECT 
+user_pseudo_id
+FROM 
+     `map-project-refactor.analytics_174510887.events_*` 
+WHERE  event_name='user_engagement'
+        and event_date between '20201001' and '20201031' )    )   
