@@ -1,0 +1,121 @@
+/*Automated Excel report to find  Quality of addresses*/
+
+with alias as ( select aliases,RANK() over(order by dateby_alias) as unique_alias from(
+select count(distinct a.alias) as aliases,cast(a.created_at as date) as dateby_alias from  `map-project-refactor.prod.aliases_created` a
+   left outer join `map-project-refactor.prod.aliases_deleted` b on b.alias=a.alias 
+   where cast(a.created_at as date)  between '2020-10-01' and '2020-10-31' and b.alias is  null   /*x month dates*/
+   group by cast(a.created_at as date))
+   order by dateby_alias desc)
+
+select Dateby,aliases,UIDs,LIDs,Overall,Complete_Addressya,GPS,GPS_lat_1Count,Gps_lng_1Count,GPS_lat_0Count,Gps_lng_0Count,Latitudes,Longitudes,Apartments,Building_names,Citys,Countries,Cross_roads,Floors,
+House_Numbers,Landmark_Descriptions,LandDesc_1Count,LanDesc_0Count,Location_Images,LocImag_1Count,LocImag_0Count,Location_Names,Region_Names,Streets 
+from(select
+       Dateby,
+       UIDs,LIDs, 
+       ((lat)+(lng)+(LD1)+(LI1))/4 as Overall,
+       ((CA1)) as Complete_Addressya,
+       ((lat)+(lng))/2 as GPS,
+       ((lat1))as GPS_lat_1Count,
+       ((lng1))as Gps_lng_1Count,
+       ((lat0)) AS GPS_lat_0Count,
+       ((LNG0)) AS Gps_lng_0Count,
+       ((lat)) as Latitudes,
+       ((lng)) as Longitudes, 
+       ((A1)) as Apartments ,
+       ((B2)) as Building_names ,
+       ((C1)) as Citys,
+       ((C2)) as Countries,
+       ((CR1)) as Cross_roads,
+       ((F1)) as Floors,
+       ((H1)) as House_Numbers,
+       ((LD1)) as Landmark_Descriptions,
+       ((Description)) as LandDesc_1Count,
+       ((Dec0)) as LanDesc_0Count,
+       ((LI1)) as Location_Images,
+       ((Image)) as LocImag_1Count,
+       ((Img0)) as LocImag_0Count,
+       ((LN1)) as Location_Names,
+       ((RN1)) as Region_Names,
+       ((S1)) as Streets,
+       RANK() over(order by dateby) as unique_alias1  
+
+from (select 
+      cast(a.created_at as date) as dateby,
+      count(distinct a.uid) as UIDs,
+      count(distinct a.lid ) as LIDs,
+      COUNT(a.position_lat) AS lat0,
+      count(a.position_lng) as lng0,
+      count( a.location_image)  as Img0,
+      count( a.landmark_desc) as Dec0,
+      SUM(case when a.position_lat is not null then 1 else 0 end)as lat1,
+      SUM(case when a.position_lng is not null then 1 else 0 end)as lng1,
+      SUM(case when a.location_image <>'' then 1 else 0 end) as Image,
+      SUM(case when a.landmark_desc<>'' then 1 else 0 end) as Description,
+      
+      
+      100*(sum(case when a.position_lat is not null  then 1 else 0 end)-sum(case when a.position_lat is  null then 1 else 0 end))
+                              /sum(case when a.position_lat is not null then 1 else 0 end) as lat,
+                              
+      100*(sum(case when a.position_lng is not null  then 1 else 0 end)-sum(case when a.position_lng is  null then 1 else 0 end))
+                              /sum(case when a.position_lng is not null then 1 else 0 end) as lng,
+                              
+      100*(sum(case when a.apartment is not null or a.apartment <>'' then 1 else 0 end)-sum(case when a.apartment is  null or 
+                              a.apartment='' then 1 else 0 end))/sum(case when a.apartment is not null or a.apartment <>'' then 1 else 0 end) as A1,
+                              
+      100*(sum(case when a.building_name is not null or a.building_name<>'' then 1 else 0 end)-sum(case when a.building_name is  null or                                 a.building_name='' then 1 else 0 end))/sum(case when a.building_name is not null or a.building_name<>'' then 1 else 0 end) as B2,
+      
+      100*(sum(case when a.city is not null or a.city<>'' then 1 else 0 end)-sum(case when a.city is  null or                                                             a.city='' then 1 else 0 end))/sum(case when a.city is not null or a.city<>'' then 1 else 0 end) as C1,
+      
+      100*(sum(case when a.country is not null or a.country<>'' then 1 else 0 end)-sum(case when a.country is  null or                                                   a.country='' then 1 else 0 end))/sum(case when country is not null or a.country<>'' then 1 else 0 end) as C2,
+      
+      100*(sum(case when a.cross_road is not null or a.cross_road<>'' then 1 else 0 end)-sum(case when a.cross_road is  null or                                           a.cross_road='' then 1 else 0 end))/sum(case when a.cross_road is not null or a.cross_road<>'' then 1 else 0 end) as CR1,
+      
+      100*(sum(case when a.floor is not null or a.floor<>'' then 1 else 0 end)-sum(case when a.floor is  null or                                                         a.floor='' then 1 else 0 end))/sum(case when a.floor is not null or a.floor<>'' then 1 else 0 end) as F1,
+      
+      100*(sum(case when a.house_number is not null or a.house_number<>'' then 1 else 0 end)-sum(case when a.house_number is  null or                                     a.house_number='' then 1 else 0 end))/sum(case when a.house_number is not null or a.house_number<>'' then 1 else 0 end) as H1,
+      
+      100*(sum(case when a.landmark_desc is not null or a.landmark_desc<>'' then 1 else 0 end)-sum(case when a.landmark_desc is  null or                                 a.landmark_desc='' then 1 else 0 end))/sum(case when a.landmark_desc is not null or a.landmark_desc<>'' then 1 else 0 end) as LD1,
+      
+      100*(sum(case when a.location_image is not null or a.location_image<>'' then 1 else 0 end)-sum(case when a.location_image is  null or                               a.location_image='' then 1 else 0 end))/sum(case when a.location_image is not null or a.location_image<>'' then 1 else 0 end) as LI1,
+      
+      100*(sum(case when a.location_name is not null or a.location_name<>'' then 1 else 0 end)-sum(case when a.location_name is  null or                                 a.location_name='' then 1 else 0 end))/sum(case when a.location_name is not null or a.location_name<>'' then 1 else 0 end) as LN1,
+      
+      100*(sum(case when a.region_name is not null or a.region_name<>'' then 1 else 0 end)-sum(case when a.region_name is  null or                                       a.region_name='' then 1 else 0 end))/sum(case when a.region_name is not null or a.region_name<>'' then 1 else 0 end) as RN1,
+      
+      100*(sum(case when a.street is not null or a.street<>'' then 1 else 0 end)-sum(case when a.street is  null or                                                       a.street='' then 1 else 0 end))/sum(case when a.street is not null or a.street<>'' then 1 else 0 end) as S1,
+      
+      100*(count(case when  a.location_image is not null and a.location_image<>''
+                                               and a.landmark_desc is not null and a.landmark_desc<>''
+                                               and a.position_lat is not null 
+                                               and a.position_lng is  not null
+                                               then 1 end))/count( a.lid ) as CA1
+from  `map-project-refactor.prod.locations_created` a
+ join  `map-project-refactor.prod.aliases_created` b on a.uid=b.uid
+ left join `map-project-refactor.prod.locations_deleted` d on a.uid=d.uid
+ left join `map-project-refactor.prod.locations_deleted` e on a.lid=e.lid
+ where cast(a.created_at as date)  between '2020-10-01' and '2020-10-31' and d.uid is null and e.lid is null     /*x month dates*/
+ group by cast(a.created_at as date)
+ )) tmp1,alias
+ where unique_alias=unique_alias1
+ order by Dateby 
+
+
+
+/*Measuring overall address quality*/
+/*--- first run above and save or update view then run  overall address quality query--- */
+
+
+
+/*select sum(aliases) as Aliases,
+sum(LIDs) as Addresses,
+Format("%.*f",2,sum(Overall)/count(Overall)) as Quality_Addresses,
+Format("%.*f",2,sum( Complete_Addressya)/count( Complete_Addressya)) as Complete_addressya,
+Format("%.*f",2,sum(GPS)/count(GPS)) AS Overall_GPS,
+Format("%.*f",2,sum( Landmark_Descriptions)/count( Landmark_Descriptions)) as Landmark_Descriptions,
+Format("%.*f",2,sum( Location_Images)/count( Location_Images)) as Location_images
+from `map-project-refactor.prod.Quality_Report`*/
+
+
+
+
+
