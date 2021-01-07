@@ -1,0 +1,31 @@
+WITH Activ_x AS (select  
+                   distinct user_pseudo_id
+               from 
+                   `map-project-refactor.analytics_174510887.events_*` temp1
+               where event_name='user_engagement' 
+               and PARSE_DATE("%Y%m%d",event_date) between DATE_ADD(CURRENT_DATE(), INTERVAL -60 DAY)  and DATE_ADD(CURRENT_DATE(), INTERVAL -31 DAY)          
+               and temp1.user_pseudo_id in (select 
+                                                      distinct user_pseudo_id 
+                                                from 
+                                                     `map-project-refactor.analytics_174510887.events_*` temp2 
+                                                where temp1.user_pseudo_id=temp2.user_pseudo_id and 
+                                                event_name='first_open'
+                                                and PARSE_DATE("%Y%m%d",event_date) between DATE_ADD(CURRENT_DATE(), INTERVAL -60 DAY)  and DATE_ADD(CURRENT_DATE(), INTERVAL -31 DAY)      )),  
+  
+Inactiv_x1 AS (SELECT
+                       DISTINCT user_pseudo_id
+                 FROM
+                     `map-project-refactor.analytics_174510887.events_*` tmp1
+                 WHERE
+                     event_name <> 'user_engagement'
+                     AND PARSE_DATE("%Y%m%d",event_date) >= DATE_ADD(CURRENT_DATE(), INTERVAL -30 DAY) 
+                     and tmp1.user_pseudo_id not in(select user_pseudo_id  
+                     from  `map-project-refactor.analytics_174510887.events_*` tmp2
+                     where tmp1.user_pseudo_id=tmp2.user_pseudo_id and 
+                     event_name='user_engagement' and PARSE_DATE("%Y%m%d",event_date) >= DATE_ADD(CURRENT_DATE(), INTERVAL -30 DAY) ))
+SELECT
+     DISTINCT activ_x.user_pseudo_id
+FROM activ_x
+WHERE activ_x.user_pseudo_id  IN (SELECT
+                                          inactiv_x1.user_pseudo_id
+                                     FROM inactiv_x1)
