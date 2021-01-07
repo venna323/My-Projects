@@ -1,0 +1,61 @@
+/* Weekly data Ratio of New User,Resurrected and Churned */
+select ID,WeekNum,Year,
+concat(WeekNum ,' ' ,Year) as week_year,
+CASE WHEN WeekNum=WeekN AND YearN=Year THEN 0 ELSE NewUser END NewUser,
+CASE WHEN WeekNum=WeekN AND YearN=Year THEN 0 ELSE Churned END Churned,
+CASE WHEN WeekNum=WeekN AND YearN=Year THEN 0 ELSE resurcted END resurcted,
+CASE WHEN WeekNum=WeekN AND YearN=Year THEN 0 ELSE QuickRatio END QuickRatio FROM
+(select ID,WeekNum,Year,NewUser,Churned,resurcted,round(((NewUser+ resurcted)*(case when churned =0 then 0 else 1 end)/(case when churned =0 then 1 else churned end)),2) as QuickRatio from (select ID,	N_week_Number_Actual WeekNum,	N_Month_Year Year,	NewUser,	
+lag(Churned,1) over (order by ID) Churned,
+lag(resurcted,2) over (order by ID) resurcted
+from  (SELECT ROW_NUMBER() OVER() ID,tmp.* from(with churned as(select N_week_Number_Actual,N_week_Number,N_Month_Year,NewUser,Churned as User from (
+WITH Activ_x AS (select distinct user_pseudo_id ,
+                 CONCAT('WEEK ',EXTRACT(WEEK FROM PARSE_DATE("%Y%m%d",event_date))+1) AS N_week_Number,
+                 CONCAT('WEEK ',EXTRACT(WEEK FROM PARSE_DATE("%Y%m%d",event_date))) AS N_week_Number_Actual,
+                 EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",event_date)) as N_Month_Year,
+               from  `map-project-refactor.analytics_174510887.events_*` temp1
+               where event_name='user_engagement' 
+               and temp1.user_pseudo_id  in (select  temp2.user_pseudo_id
+                                                from  `map-project-refactor.analytics_174510887.events_*` temp2 
+                                                where temp1.user_pseudo_id=temp2.user_pseudo_id and                
+ CONCAT('WEEK ',EXTRACT(WEEK FROM PARSE_DATE("%Y%m%d",temp2.event_date)))=CONCAT('WEEK ',EXTRACT(WEEK FROM PARSE_DATE("%Y%m%d",temp1.event_date)))and EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",temp2.event_date))=
+EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",temp1.event_date)) and  event_name='first_open')  order by N_Month_Year,cast (SUBSTR(N_week_Number, 5, LENGTH(N_week_Number)) AS int64)
+                 ),  
+Inactiv_x1 AS (SELECT user_pseudo_id ,
+     CONCAT('WEEK ',EXTRACT(WEEK FROM PARSE_DATE("%Y%m%d",event_date))) AS C_week_Number,
+                          EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",event_date)) as C_Month_Year
+                 FROM `map-project-refactor.analytics_174510887.events_*` temp1
+                 WHERE event_name <> 'user_engagement'  and event_date >= '20190609'
+                     and temp1.user_pseudo_id not in 
+                     (select temp2.user_pseudo_id  
+                     from  `map-project-refactor.analytics_174510887.events_*` temp2
+                     where temp1.user_pseudo_id=temp2.user_pseudo_id 
+                     and  event_name='user_engagement' and event_date >= '20190609' and
+                     CONCAT('WEEK ',EXTRACT(WEEK FROM PARSE_DATE("%Y%m%d",temp2.event_date)))=CONCAT('WEEK ',EXTRACT(WEEK FROM PARSE_DATE("%Y%m%d",temp1.event_date)))
+and EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",temp2.event_date))=
+EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",temp1.event_date))
+                       )order by C_Month_Year,cast (SUBSTR(C_week_Number, 5, LENGTH(C_week_Number)) AS int64))
+
+SELECT  N_week_Number_Actual,N_week_Number,N_Month_Year,activ_x.user_pseudo_id NewUser,
+(case when N_week_Number=C_week_Number and N_Month_Year=C_Month_Year and Inactiv_x1.user_pseudo_id=Activ_x.user_pseudo_id then Inactiv_x1.user_pseudo_id end) Churned
+FROM Activ_x
+left join Inactiv_x1 on Activ_x.user_pseudo_id=Inactiv_x1.user_pseudo_id and N_week_Number=C_week_Number and N_Month_Year=C_Month_Year
+order by N_Month_Year,cast (SUBSTR(N_week_Number, 5, LENGTH(N_week_Number)) AS int64))),
+
+resurcted as   (select distinct user_pseudo_id , 
+                                 CONCAT('WEEK ',EXTRACT(WEEK FROM PARSE_DATE("%Y%m%d",event_date))-1) AS R_week_Number,
+                          EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",event_date)) as R_Month_Year
+               from  `map-project-refactor.analytics_174510887.events_*` temp1
+               where event_name in('user_engagement') and event_date >= '20190616')  
+			   
+			              
+      SELECT  N_week_Number_Actual,N_Month_Year,count(distinct NewUser) NewUser,count(distinct Churned.User) Churned,
+count(distinct case when N_week_Number=R_week_Number and N_Month_Year=R_Month_Year and churned.User=resurcted.user_pseudo_id then resurcted.user_pseudo_id end) resurcted
+
+FROM churned
+left join resurcted on NewUser=resurcted.user_pseudo_id 
+group by 1,2
+order by N_Month_Year,cast (SUBSTR(N_week_Number_Actual, 5, LENGTH(N_week_Number_Actual)) AS int64))tmp)
+order by id))
+left join (select CONCAT('WEEK ',EXTRACT(WEEK FROM current_date())) as WeekN,Extract(Year from current_date()) as YearN) on WeekNum=WeekN AND YearN=Year
+ORDER BY ID
