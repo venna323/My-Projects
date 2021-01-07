@@ -1,0 +1,70 @@
+/* Monthly Ratio of New user,Resurrected and churned  */
+
+select id,Month_Year_Actual,
+case when Month_Year_Actual=Month_Year then 0 else NewUser end NewUser, 
+case when Month_Year_Actual=Month_Year then 0 else Churned end Churned,
+case when Month_Year_Actual=Month_Year then 0 else Resurcted end Resurcted,case when Month_Year_Actual=Month_Year then 0 else QuickRatio end QuickRatio from
+(select id,Month_Year_Actual,NewUser,Churned,Resurcted,round(((NewUser+resurcted)/Churned), 2) as QuickRatio from (select id,Month_Year_Actual,NewUser,	
+lag(Churned,1) over (order by ID) Churned,
+lag(resurcted,2) over (order by ID) resurcted from(
+
+select Row_Number() over() id,tmp.*
+
+from (with churned as (select Month_Year_Actual,A_date,Month_Year_A,NewUser,user  from
+(select Month_Year_Actual,A_date,Month_Year_A,NewUser,Churned as user  from(
+WITH Activ_x AS (select distinct user_pseudo_id , 
+                
+                 extract(year from DATE_ADD(PARSE_DATE("%Y%m%d",event_date), INTERVAL 1 MONTH)) * 100 + extract(month from DATE_ADD(PARSE_DATE("%Y%m%d",event_date), INTERVAL 1 MONTH)) as A_date,
+                  CONCAT(format_date('%B ',DATE_ADD(PARSE_DATE("%Y%m%d",event_date), INTERVAL 1 MONTH)),EXTRACT(YEAR FROM DATE_ADD(PARSE_DATE("%Y%m%d",event_date), INTERVAL 1 MONTH))) as Month_Year_A,
+                  extract(year from PARSE_DATE("%Y%m%d",event_date)) * 100 + extract(month from PARSE_DATE("%Y%m%d",event_date)) as Actual_date,
+                   CONCAT(format_date('%B ',PARSE_DATE("%Y%m%d",event_date)),EXTRACT(YEAR FROM PARSE_DATE("%Y%m%d",event_date))) as Month_Year_Actual
+                 
+               from 
+                   `map-project-refactor.analytics_174510887.events_*` temp1
+               where event_name='user_engagement' 
+               and temp1.user_pseudo_id  in (select 
+                                                      temp2.user_pseudo_id
+                                                from 
+                                                     `map-project-refactor.analytics_174510887.events_*` temp2 
+                                                where temp1.user_pseudo_id=temp2.user_pseudo_id and 
+                                                 substring(temp1.event_date,1,6)=substring(temp2.event_date,1,6)
+                                              and  event_name='first_open' 
+                                               )  order by A_date
+                 ),  
+Inactiv_x1 AS (SELECT
+                       user_pseudo_id ,
+     (extract(year from PARSE_DATE("%Y%m%d",event_date)) * 100 + extract(month from PARSE_DATE("%Y%m%d",event_date))) as I_date
+                 FROM
+                     `map-project-refactor.analytics_174510887.events_*` tmp1
+                 WHERE
+                     event_name <> 'user_engagement'  and event_date >= '20190701'
+                     and tmp1.user_pseudo_id not in 
+                     (select tmp2.user_pseudo_id  
+                     from  `map-project-refactor.analytics_174510887.events_*` tmp2
+                     where tmp1.user_pseudo_id=tmp2.user_pseudo_id and substring(tmp1.event_date,1,6)=substring(tmp2.event_date,1,6)
+                     and  event_name='user_engagement' and event_date >= '20190701' 
+                       )     )
+
+SELECT  Month_Year_Actual,A_date,Month_Year_A,activ_x.user_pseudo_id NewUser,
+( case when A_date=I_date and Activ_x.user_pseudo_id=Inactiv_x1.user_pseudo_id then Inactiv_x1.user_pseudo_id end) Churned,
+FROM Activ_x
+left join Inactiv_x1 on Activ_x.user_pseudo_id=Inactiv_x1.user_pseudo_id and A_date=I_date
+order by 1))),
+
+resurcted as   (select distinct user_pseudo_id , 
+                                 extract(year from DATE_SUB(PARSE_DATE("%Y%m%d",event_date), INTERVAL 1 MONTH)) * 100 + extract(month from DATE_SUB(PARSE_DATE("%Y%m%d",event_date), INTERVAL 1 MONTH)) as R_date
+               from 
+                   `map-project-refactor.analytics_174510887.events_*` temp1
+               where event_name = 'user_engagement' and event_date >= '20190801')
+               
+         SELECT  Month_Year_Actual,A_date,count(distinct churned.NewUser)NewUser,count(distinct churned.User) churned,
+count( distinct case when A_date=R_date and churned.User=resurcted.user_pseudo_id then resurcted.user_pseudo_id end) resurcted
+
+FROM churned
+left join resurcted on churned.NewUser=resurcted.user_pseudo_id  
+group by 1,2
+order by A_date ) tmp) order by id)
+)
+
+left join (select CONCAT(format_date('%B ',current_date()),EXTRACT(YEAR FROM current_date())) as Month_Year) on Month_Year_Actual=Month_Year
+ORDER BY ID
