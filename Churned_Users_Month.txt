@@ -1,0 +1,30 @@
+WITH Activ_x AS (select  
+                   distinct user_pseudo_id
+               from 
+                   `map-project-refactor.analytics_174510887.events_*` temp1
+               where event_name='user_engagement' 
+               and event_date BETWEEN '20200901' and '20200930' 
+               and temp1.user_pseudo_id in (select 
+                                                      distinct user_pseudo_id 
+                                                from 
+                                                     `map-project-refactor.analytics_174510887.events_*` temp2 
+                                                where temp1.user_pseudo_id=temp2.user_pseudo_id and 
+                                                event_name='first_open'
+                                                and event_date BETWEEN '20200901' and '20200930'  )),  
+  
+Inactiv_x1 AS (SELECT
+                       DISTINCT user_pseudo_id
+                 FROM
+                     `map-project-refactor.analytics_174510887.events_*` tmp1
+                 WHERE
+                     event_name <> 'user_engagement'
+                     AND event_date BETWEEN '20201001' AND '20201031' and tmp1.user_pseudo_id not in(select user_pseudo_id
+                     from  `map-project-refactor.analytics_174510887.events_*` tmp2
+                     where tmp1.user_pseudo_id=tmp2.user_pseudo_id and 
+                     event_name='user_engagement' and event_date BETWEEN '20201001' AND '20201031'))
+SELECT
+     DISTINCT activ_x.user_pseudo_id
+FROM activ_x
+WHERE activ_x.user_pseudo_id  IN (SELECT
+                                          inactiv_x1.user_pseudo_id
+                                     FROM inactiv_x1)
