@@ -1,0 +1,20 @@
+select 
+count (distinct (case when event_date between '20200901' and '20241007' then user_pseudo_id end)) monthly,
+count (distinct (case when event_date between '20201001' and '20241007' then user_pseudo_id end)) Weekly,
+count (distinct (case when event_date ='20201007' then user_pseudo_id end)) daily,
+from 'map-project-refactor.analytics_174510887.events_*' temp1
+where event_name<>'user_engagement'and user_pseudo_id in (select user_id from `map-project-refactor.analytics_174510887.events_*`temp2
+where event_name='user_engagement' and temp1.user_pseudo_id =temp2.user_pseudo_id )
+
+
+---------/*
+Other way rolling days
+count (distinct (case when PARSE_DATE("%Y%m%d",event_date) between DATE_ADD(CURRENT_DATE(), INTERVAL -60 DAY)  and DATE_ADD(CURRENT_DATE(), INTERVAL -31 DAY) then user_pseudo_id end)) monthly,
+count (distinct (case when PARSE_DATE("%Y%m%d",event_date) between DATE_ADD(CURRENT_DATE(), INTERVAL -14 DAY)  and DATE_ADD(CURRENT_DATE(), INTERVAL -8 DAY) then user_pseudo_id end)) weekly,
+count (distinct (case when PARSE_DATE("%Y%m%d",event_date) between DATE_ADD(CURRENT_DATE(), INTERVAL -2 DAY)  and DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) then user_pseudo_id end)) Daily,
+from 'map-project-refactor.analytics_174510887.events_*' temp1
+where event_name<>'user_engagement' and user_pseudo_id in (select user_id from `map-project-refactor.analytics_174510887.events_*` temp2
+where event_name='user_engagement' and temp1.user_pseudo_id =temp2.user_pseudo_id )
+------------*/
+
+
