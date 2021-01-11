@@ -6,15 +6,33 @@ from 'map-project-refactor.analytics_174510887.events_*' temp1
 where event_name<>'user_engagement'and user_pseudo_id in (select user_id from `map-project-refactor.analytics_174510887.events_*`temp2
 where event_name='user_engagement' and temp1.user_pseudo_id =temp2.user_pseudo_id )
 
+/*
+-----------other way with rolling days
 
----------/*
-Other way rolling days
+select 
+count(case when PARSE_DATE("%Y%m%d",event_date) >=DATE_ADD(CURRENT_DATE(), INTERVAL -30 DAY)then a.uid end) Month,
+count(case when PARSE_DATE("%Y%m%d",event_date) >=DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)then a.uid end) Week,
+count(case when PARSE_DATE("%Y%m%d",event_date) >=DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)then a.uid end) Day
+from 'map-project-refactor.analytics_174510887.events_*' temp1
+where event_name<>'user_engagement'and user_pseudo_id in (select user_id from `map-project-refactor.analytics_174510887.events_*`temp2
+where event_name='user_engagement' and temp1.user_pseudo_id =temp2.user_pseudo_id )
+
+----------
+*/
+
+
+/*
+---------To find last month,week and day
+
+Select
 count (distinct (case when PARSE_DATE("%Y%m%d",event_date) between DATE_ADD(CURRENT_DATE(), INTERVAL -60 DAY)  and DATE_ADD(CURRENT_DATE(), INTERVAL -31 DAY) then user_pseudo_id end)) monthly,
 count (distinct (case when PARSE_DATE("%Y%m%d",event_date) between DATE_ADD(CURRENT_DATE(), INTERVAL -14 DAY)  and DATE_ADD(CURRENT_DATE(), INTERVAL -8 DAY) then user_pseudo_id end)) weekly,
 count (distinct (case when PARSE_DATE("%Y%m%d",event_date) between DATE_ADD(CURRENT_DATE(), INTERVAL -2 DAY)  and DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) then user_pseudo_id end)) Daily,
 from 'map-project-refactor.analytics_174510887.events_*' temp1
 where event_name<>'user_engagement' and user_pseudo_id in (select user_id from `map-project-refactor.analytics_174510887.events_*` temp2
 where event_name='user_engagement' and temp1.user_pseudo_id =temp2.user_pseudo_id )
-------------*/
+
+------------
+*/
 
 
