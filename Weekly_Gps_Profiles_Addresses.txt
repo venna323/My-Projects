@@ -1,0 +1,29 @@
+------Weekly data for Profiles,Address and GPS
+with profiles as(select
+                                             count(uid) as Profiles_Created,
+                                             CONCAT('WEEK ',EXTRACT(WEEK FROM Date )) AS WEEKNUMBER,
+                                             CONCAT(format_date('%B ', Date ),EXTRACT(YEAR FROM Date ) )as Month_Year
+                                        from
+                                            `map-project-refactor.prod.Profiles`
+                                             group by WEEKNUMBER,Month_Year),
+                            
+                            addresses as(select 
+                                               count(uid) as Addresses_Created,
+                                               CONCAT('WEEK ',EXTRACT(WEEK FROM Date )) AS WEEKNUMBER,
+                                               CONCAT(format_date('%B ', Date ),EXTRACT(YEAR FROM Date ) )as Month_Year
+                                          from 
+                                               `map-project-refactor.prod.Addresses` 
+                                                group by WEEKNUMBER,Month_Year),
+
+                              gps_1 as(select 
+                                          count(GPS) as TOTAL_GPS,
+                                          CONCAT('WEEK ',EXTRACT(WEEK FROM Date )) AS WEEKNUMBER,
+                                          CONCAT(format_date('%B ', Date ),EXTRACT(YEAR FROM Date ) )as Month_Year
+                                       from
+                                            `map-project-refactor.prod.OnlyGPS`
+                                             group by WEEKNUMBER,Month_Year)
+select profiles.WEEKNUMBER as Weeknumber,profiles.Month_Year as Month_Year, profiles.Profiles_Created,addresses.Addresses_Created, gps_1.TOTAL_GPS from profiles,addresses,gps_1
+where  profiles.WEEKNUMBER=addresses.WEEKNUMBER and addresses.WEEKNUMBER=gps_1.WEEKNUMBER and gps_1.WEEKNUMBER=profiles.WEEKNUMBER 
+and profiles.Month_Year=addresses.Month_Year and addresses.Month_Year= gps_1.Month_Year and  gps_1.Month_Year=profiles.Month_Year
+ORDER BY WEEKNUMBER  desc
+
