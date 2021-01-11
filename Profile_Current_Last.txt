@@ -1,0 +1,19 @@
+With Current_profiles as(SELECT 
+   count(case when CAST(DATE(a.created_at) AS DATE) >=DATE_ADD(CURRENT_DATE(), INTERVAL -30 DAY)then a.uid end) Current_Month,
+   count(case when CAST(DATE(a.created_at) AS DATE) >=DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)then a.uid end) Current_Week,
+   count(case when CAST(DATE(a.created_at) AS DATE) >=DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)then a.uid end) Current_Day 
+FROM `map-project-refactor.prod.users_created`a
+left join `map-project-refactor.prod.users_deleted` b on a.uid=b.uid
+where b.uid is null 
+),
+
+Last_Profiles as (SELECT 
+   count(case when CAST(DATE(a.created_at) AS DATE) between DATE_ADD(CURRENT_DATE(), INTERVAL -60 DAY) and DATE_ADD(CURRENT_DATE(), INTERVAL -31 DAY)then a.uid end) Last_Month,
+   count(case when CAST(DATE(a.created_at) AS DATE) between DATE_ADD(CURRENT_DATE(), INTERVAL -14 DAY) and DATE_ADD(CURRENT_DATE(), INTERVAL -8 DAY)then a.uid end) Last_Week,
+   count(case when CAST(DATE(a.created_at) AS DATE) between DATE_ADD(CURRENT_DATE(), INTERVAL -2 DAY) and DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)then a.uid end)then a.uid end) Last_Day 
+FROM `map-project-refactor.prod.users_created`a
+left join `map-project-refactor.prod.users_deleted` b on a.uid=b.uid
+where b.uid is null 
+)
+
+select * from Current_profiles,Last_Profiles  
