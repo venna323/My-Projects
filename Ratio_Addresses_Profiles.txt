@@ -1,0 +1,45 @@
+------Ratio of Addresses/Profiles:------
+
+with Month as(SELECT (SELECT count(case when CAST(DATE(a.created_at) AS DATE) >=DATE_ADD(CURRENT_DATE(), INTERVAL -30 DAY)  then a.uid end)Addresses_per_Month
+                            FROM 
+                                `map-project-refactor.prod.locations_created` a
+                                left join `map-project-refactor.prod.locations_deleted` b on a.uid=b.uid where b.uid is null
+                                 )/ 
+                               (SELECT 
+                                      count(case when CAST(DATE(c.created_at) AS DATE) >=DATE_ADD(CURRENT_DATE(), INTERVAL -30 DAY) then c.uid                                                         end)Profile_per_Month
+                                FROM
+                                    `map-project-refactor.prod.users_created` c
+                                    left join  `map-project-refactor.prod.users_deleted` d on c.uid=d.uid
+                                    where d.uid is null)Month_ratio_profile_addresses),
+                                    
+                                  
+                                    
+Week as(select
+                  (Select  count(case when CAST(DATE(a.created_at) AS DATE) >=DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY)  then a.uid end) Addresses_per_Week
+                   from   `map-project-refactor.prod.locations_created` a
+                                left join `map-project-refactor.prod.locations_deleted` b on a.uid=b.uid where b.uid is null) / (SELECT 
+                                      count(case when CAST(DATE(c.created_at) AS DATE) >=DATE_ADD(CURRENT_DATE(), INTERVAL -7 DAY) then c.uid                                                         end)Profile_per_Week
+                                FROM
+                                    `map-project-refactor.prod.users_created` c
+                                    left join  `map-project-refactor.prod.users_deleted` d on c.uid=d.uid
+                                    where d.uid is null)Week_ratio_profile_addresses),
+
+
+
+Day as(select
+                  (Select  count(case when CAST(DATE(a.created_at) AS DATE) >=DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY)  then a.uid end)Addresses_per_Day
+                   from   `map-project-refactor.prod.locations_created` a
+                                left join `map-project-refactor.prod.locations_deleted` b on a.uid=b.uid where b.uid is null ) / (SELECT 
+                                      count(case when CAST(DATE(c.created_at) AS DATE) >=DATE_ADD(CURRENT_DATE(), INTERVAL -1 DAY) then c.uid                                                         end)Profile_per_Day
+                                FROM
+                                    `map-project-refactor.prod.users_created` c
+                                    left join  `map-project-refactor.prod.users_deleted` d on c.uid=d.uid
+                                    where d.uid is null)Day_ratio_Proflies_addresses)
+                                                                               
+
+
+
+select CONCAT(round(Month_ratio_profile_addresses*100),' %') as Month_ratio,
+CONCAT(round(Week_ratio_profile_addresses*100),' %') as Week_ratio,
+CONCAT(round(Day_ratio_Proflies_addresses*100),' %') as Day_ratio
+from  Month, Week, Day
